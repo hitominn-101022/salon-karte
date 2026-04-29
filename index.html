@@ -188,6 +188,11 @@
 <div class="header">
   <h1>✂ SALON <span>KARTE</span></h1>
   <div class="header-right">
+    <button class="btn btn-ghost btn-sm" onclick="exportData()" style="color:white;border-color:rgba(255,255,255,0.4);">📤 書き出す</button>
+    <label class="btn btn-ghost btn-sm" style="color:white;border-color:rgba(255,255,255,0.4);cursor:pointer;">
+      📥 読み込む
+      <input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+    </label>
     <button class="btn btn-primary" onclick="showView('addCustomer')" id="addBtn">＋ 新規登録</button>
   </div>
 </div>
@@ -941,6 +946,43 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ==================== EXPORT / IMPORT ====================
+function exportData() {
+  const data = loadData();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'salon_karte_backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 データを書き出しました！');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.customers || !Array.isArray(data.customers)) {
+        showToast('❌ ファイルの形式が正しくありません');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      showToast('📥 データを読み込みました！（' + data.customers.length + '件）');
+      renderCustomerList();
+      renderStats();
+    } catch(err) {
+      showToast('❌ 読み込みに失敗しました');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 // ==================== INIT ====================
