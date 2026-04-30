@@ -473,7 +473,11 @@ function loadData() {
 }
 
 function saveData(data) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {
+    showToast('⚠️ 保存失敗：容量不足です。写真を減らしてください。');
+  }
 }
 
 let db = loadData();
@@ -923,12 +927,31 @@ function previewPhoto(input, previewId, dataKey) {
 
   const reader = new FileReader();
   reader.onload = function(e) {
-    const img = document.getElementById(previewId);
-    img.src = e.target.result;
-    img.style.display = 'block';
-    const placeholder = previewId.replace('Preview','Placeholder');
-    document.getElementById(placeholder).style.display = 'none';
-    window[dataKey] = e.target.result;
+    // 画像を圧縮してから保存
+    const originalImg = new Image();
+    originalImg.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX = 800;
+      let w = originalImg.width;
+      let h = originalImg.height;
+      if (w > h) {
+        if (w > MAX) { h = h * MAX / w; w = MAX; }
+      } else {
+        if (h > MAX) { w = w * MAX / h; h = MAX; }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(originalImg, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+
+      const img = document.getElementById(previewId);
+      img.src = compressed;
+      img.style.display = 'block';
+      const placeholder = previewId.replace('Preview','Placeholder');
+      document.getElementById(placeholder).style.display = 'none';
+      window[dataKey] = compressed;
+    };
+    originalImg.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
